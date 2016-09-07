@@ -1,23 +1,22 @@
-{ 
-	"cat":	{
+{ "cat":	{
 		"type" : "cat",
 		"name" : "kitty",
 		"age"  : 0,
 		"weight" : 2,
-		"picture" :  "(=^o.o^=)__")
+		"picture" :  "(=^o.o^=)__"
 	},
 	"mouse" :	{
 		"type" : "mouse",
-		"name" : "Mousey",
+		"name" : "mousey",
 		"age" : 0,
 		"weight" : 1,
 		"picture" : "<:3 )~~~~"
 	},
 	"monkey" :	{
 		"type" : "monkey",
-		"name" : "Momo",
+		"name" : "momo",
 		"age" : 0,
 		"weight" : 4,
-		"picture" : "C(^o^)Ↄ"
+		"picture" : "C(^o^)\u2183"
 	}
 }

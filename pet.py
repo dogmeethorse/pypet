@@ -1,6 +1,6 @@
-#! usr/bin/env python
+#! /usr/bin/env python
 from Tkinter import *
-import json
+import json, time
 
 print "Welcome to Pet Thing!"
 
@@ -76,28 +76,32 @@ class PyPet:
 		self.leaveMainMenu()
 		buttons = []
 		petMenuCommands = [] 
-		petDataStream = open("petpy.json", 'r')
-		petData = json.load(petDataStream)
-		def pickPet(petter):
-			def petterfunc(): 
-				self.loadPet(petter)
-				self.enterPetMode()
-			return petterfunc
-		def addLeaveLoad(func):
-			def leaveFunc():
-				func()
-				self.leaveLoadMenu(buttons)
-			return leaveFunc	
 		def mainMenu():
 			def func():
 				self.leaveLoadMenu(buttons)
-				self.enterMainMenu()	
-		for i in petData.keys():
-			buttons.append(pypet.addButton(petData[i]["name"], None))
-			petMenuCommands.append(pickPet(petData[i]))
-		for k in range(len(buttons)):
-			print k
-			buttons[k].config(command = addLeaveLoad(petMenuCommands[k]))
+				self.enterMainMenu()
+			return func()	
+		petDataStream = open("petpy.json", 'r')
+		try:
+			petData = json.load(petDataStream)
+			def pickPet(petter):
+				def petterfunc(): 
+					self.loadPet(petter)
+					self.enterPetMode()
+				return petterfunc
+			def addLeaveLoad(func):
+				def leaveFunc():
+					func()
+					self.leaveLoadMenu(buttons)
+				return leaveFunc	
+			for i in petData.keys():
+				buttons.append(pypet.addButton(petData[i]["name"], None))
+				petMenuCommands.append(pickPet(petData[i]))
+			for k in range(len(buttons)):
+				print k
+				buttons[k].config(command = addLeaveLoad(petMenuCommands[k]))
+		except ValueError:
+			self.displayText("No pets currently.")
 		mainMenuButton = pypet.addButton("Main Menu", mainMenu)
 		buttons.append(mainMenuButton)
 	
@@ -109,23 +113,83 @@ class PyPet:
 	def loadPet(self, stats):
 		self.pet = Pet(stats['name'], stats['age'], stats['weight'], stats['picture'])
 		print str(self.pet.name)
-	
+		self.pet.age = stats['age']
+		self.pet.hungry = stats['hungry']
+		self.pet.alive = stats['alive']
+		self.pet.foodLevel = stats['foodLevel']
+		
 	def savePet (self):
-		petDataStream = open('petpy.json', 'r+')
-		petData = json.load(petDataStream)
-		petDataStream.seek(0,0)
-		del petData[self.pet.name]
+		petDataStream = open('petpy.json', 'r')
+		try: 
+			petData = json.load(petDataStream)
+			petDataStream.close()
+		except ValueError:
+			petData = {}
+		petDataStream = open('petpy.json', 'w')
+		if hasattr(petData, self.pet.name):
+			del petData[self.pet.name]
 		petData[self.pet.name] = vars(self.pet)
 		json.dump(petData, petDataStream) 
 		petDataStream.close()
 		
 	def newPet(self):
 		self.leaveMainMenu();
-		self.mainMenuButton = pypet.addButton("Main Menu", self.leaveNewPet)
+		fileDataStream = open('petpytemplates.json', 'r')
+		templates = json.load(fileDataStream)
+		fileDataStream.close()
+		buttons = []
+		def makeCommand(newPet):
+			def command():
+				self.pet = Pet(newPet['name'], newPet['age'], newPet['weight'], newPet['picture'])
+				print self.pet.picture
+				self.displayText('New ' + newPet['type'] + ' created.')
+			return command
+		for i in templates.keys():
+			buttons.append(pypet.addButton(templates[i]['type'], makeCommand(templates[i])))
+		def playCommand(buttonlist, petbutton):
+			def playfunc():
+				for i in range(len(buttonlist)):
+					buttonlist[i].destroy()
+				self.mainMenuButton.destroy()
+				petbutton.destroy()
+				self.enterPetMode()
+			return playfunc
+		def leaveMenu(buttonlist, petModeB):
+			def leaving():
+				for i in range(len(buttonlist)):
+					buttonlist[i].destroy()
+				petModeB.destroy()
+				self.leaveNewPet()
+			return leaving
+		self.mainMenuButton = pypet.addButton("Main Menu", None) 
+		petModeButton = pypet.addButton('Play with Pet', None)
+		self.mainMenuButton.config(command =leaveMenu(buttons, petModeButton))
+		petModeButton.config(command = playCommand(buttons, petModeButton))
 		
 	def leaveNewPet(self):
 		self.mainMenuButton.destroy()
 		self.enterMainMenu()
+	
+	def enterRenameScreen(self):
+		self.feedButton.destroy()
+		self.greetButton.destroy()
+		self.nameButton.destroy()
+		self.mainMenuButton.destroy()
+		self.renameScreen()
+	
+	def renameScreen(self):
+		nameField = Entry(self.root, bd = 2)
+		instructions = Label(self.root, text="Enter the name of your pet:")
+		instructions.pack()
+		nameField.pack()
+		okButton = self.addButton("ok", None)
+		def setAndLeave():
+			self.pet.name = nameField.get()
+			nameField.destroy()
+			instructions.destroy()
+			okButton.destroy()
+			self.enterPetMode()
+		okButton.config(command = setAndLeave)
 		
 	def enterMainMenu(self):
 		self.loadPetButton = self.addButton("Load Pet", self.loadMenu)
@@ -140,6 +204,7 @@ class PyPet:
 		self.displayPet()
 		self.feedButton = pypet.addButton("FEED", self.pet.feed)
 		self.greetButton = pypet.addButton("Greet", self.pet.greet)
+		self.nameButton = pypet.addButton('Change Name', self.enterRenameScreen)
 		self.mainMenuButton = pypet.addButton("Main Menu", self.leavePetMode)
 		self.petMode()
 	
@@ -168,6 +233,7 @@ class PyPet:
 		self.feedButton.destroy()
 		self.greetButton.destroy()
 		self.mainMenuButton.destroy()
+		self.nameButton.destroy()
 		self.savePet()
 		self.enterMainMenu()
 		
